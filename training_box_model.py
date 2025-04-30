@@ -1,23 +1,20 @@
 import os.path
 import uuid
 import keras
-from PIL import Image
 import numpy as np
 import random
 import cv2
 import tensorflow as tf
-from tensorflow.keras import layers
-import matplotlib.pyplot as plt
+from tensorflow.keras import layers, models
 from util import plot_image_with_bbox_batch
-from shapely.geometry import Polygon
 
 
 import pandas as pd
 """
 these shapes are the celebA dataset standard. 
 """
-IMG_WIDTH = 178
-IMG_HEIGHT = 218
+IMG_WIDTH = 1920
+IMG_HEIGHT = 1080
 BATCH_SIZE = 64
 
 images_folder = "../Training Data/archive (2)/img_align_celeba/img_align_celeba/"
@@ -73,7 +70,6 @@ def get_image_augmented(image_id, box):
     return image,box
 def filter_overflow(image,box):
     x1,y1,x2,y2,x3,y3,x4,y4 = tf.unstack(box)
-    # Valid if bbox is inside the image and positive
     valid1 = tf.logical_and(
         tf.logical_and(
             tf.logical_and(x1 >= 0, y1 > 0),
@@ -172,101 +168,51 @@ val_dataset = devtest_dataset.skip(900).batch(BATCH_SIZE)
 # plot_image_with_bbox_batch(image,box)
 
 def build_model():
-    inputs = tf.keras.Input((IMG_HEIGHT,IMG_WIDTH,3))
+    inputs = tf.keras.Input((720,720,3))
 
-    # Feature extractor with more layers
     x = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
-    x = layers.BatchNormalization()(x)  # Batch Normalization
+    x = layers.BatchNormalization()(x)
     x = layers.MaxPooling2D((2, 2))(x)
 
     x = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(x)
-    x = layers.BatchNormalization()(x)  # Batch Normalization
+    x = layers.BatchNormalization()(x)
     x = layers.MaxPooling2D((2, 2))(x)
 
     x = layers.Conv2D(128, (3, 3), activation='relu', padding='same')(x)
-    x = layers.BatchNormalization()(x)  # Batch Normalization
+    x = layers.BatchNormalization()(x)
     x = layers.MaxPooling2D((2, 2))(x)
 
     x = layers.Conv2D(256, (3, 3), activation='relu', padding='same')(x)
-    x = layers.BatchNormalization()(x)  # Batch Normalization
+    x = layers.BatchNormalization()(x)
     x = layers.MaxPooling2D((2, 2))(x)
 
     x = layers.Conv2D(512, (3, 3), activation='relu', padding='same')(x)
-    x = layers.BatchNormalization()(x)  # Batch Normalization
+    x = layers.BatchNormalization()(x)
     x = layers.MaxPooling2D((2, 2))(x)
 
-    # Flatten and dense layers
     x = layers.Flatten()(x)
-    x = layers.Dense(1024, activation='relu')(x)
-    x = layers.Dropout(0.5)(x)  # Dropout for regularization
-    x = layers.Dense(512, activation='relu')(x)  # A smaller dense layer
-    x = layers.Dropout(0.4)(x)  # Additional dropout to prevent overfitting
 
-    # Output: 8 numbers (x1, y1, x2, y2, x3, y3, x4, y4)
-    outputs = layers.Dense(8)(x)
-    model = tf.keras.Model(inputs, outputs)
+    #classification:
+    c1 = layers.Dense(2048,activation="relu")(x)
+    c2 = layers.Dense(1,activation="sigmoid")(c1)
+
+    #bounding box coordinate regression:
+    r1 = layers.Dense(2048,activation="relu")(x)
+    r2 = layers.Dense(4,activation="sigmoid")(r1) # coordinates are normalized
+
+    model = tf.keras.Model(inputs=inputs, outputs=[c2,r2])
     return model
 
 
-# class PolygonIoULoss(tf.keras.losses.Loss):
-#     def __init__(self):
-#         super().__init__()
-#
-#     def mse_loss(self, y_true, y_pred):
-#         return tf.reduce_mean(tf.square(y_true - y_pred))
-#
-#     def polygon_iou_loss(self, y_true, y_pred):
-#         # y_true and y_pred shape: (batch_size, 8)
-#         @tf.py_function(Tout=tf.float32)
-#         def single_iou(sample_tuple):
-#             y_true, y_pred = sample_tuple
-#             print(type(y_true))
-#             y_true_np = y_true.numpy()
-#             y_pred_np = y_pred.numpy()
-#             y_true_np = y_true_np.reshape(4, 2)
-#             y_pred_np = y_pred_np.reshape(4, 2)
-#
-#             true_poly = Polygon(y_true_np)
-#             pred_poly = Polygon(y_pred_np)
-#
-#             if not true_poly.is_valid or not pred_poly.is_valid:
-#                 return np.float32(1.0)
-#
-#             intersection = true_poly.intersection(pred_poly).area
-#             union = true_poly.union(pred_poly).area
-#             iou = intersection / union if union > 0 else 0.0
-#             return tf.stop_gradient(np.float32(1.0 - iou))
-#
-#         # Map single_iou over batch using tf.py_function
-#         batch_iou_losses = tf.map_fn(
-#             single_iou,
-#             (y_true,y_pred),
-#             fn_output_signature=tf.float32
-#         )
-#         return tf.reduce_mean(batch_iou_losses)
-#
-#     def call(self, y_true, y_pred):
-#         mse = self.mse_loss(y_true, y_pred)
-#         poly = self.polygon_iou_loss(y_true, y_pred)
-#         return mse + poly
-#
 
-
-
-# Create the model
 model = build_model()
 
 model.compile(
     optimizer = tf.keras.optimizers.AdamW(learning_rate=0.001, weight_decay=1e-5),
-    loss="mse",  # mean squared error, good for coordinate regression
+    loss="mse",
+
 )
 
-logdir = "logs/fit"
-tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logdir)
-history = model.fit(train_dataset,validation_data=val_dataset, epochs=75,callbacks=[tensorboard_callback])
-
-print(model.evaluate(test_dataset))
-model.save("face_detect_model.h5")
-
+print(model.predict(val_dataset))
 
 
