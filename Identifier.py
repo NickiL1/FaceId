@@ -5,7 +5,6 @@ import pickle
 import os
 import shutil
 import tensorflow as tf
-from tensorflow.python.keras.layers import embeddings
 
 
 def align_face(img, landmarks, output_size=(112, 112)):
@@ -142,7 +141,7 @@ class FaceIdentifier(object):
         pre = tf.multiply(pre, 0.0078125)
         pre = tf.expand_dims(pre, axis=0)
 
-        bbox, lnds = self.detection_model.predict(pre, batch_size=1)
+        bbox, lnds, scores = self.detection_model.predict(pre, batch_size=1)
 
         identities = []
         for box, landmark in zip(bbox, lnds):

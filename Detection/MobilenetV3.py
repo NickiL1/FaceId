@@ -363,7 +363,7 @@ class NMS(Layer):
             iou_threshold=self.nms_thresh,
             score_threshold=self.nms_thresh,
         )
-        return tf.gather(boxes,selected_idx), tf.gather(lnd_pred,selected_idx)
+        return tf.gather(boxes,selected_idx), tf.gather(lnd_pred,selected_idx), tf.gather(cls_pred,selected_idx)
 
     def get_config(self):
         base = super(NMS, self).get_config()
@@ -408,8 +408,8 @@ class FaceDetector(Model):
 
     def call(self, inputs, training=False):
         cls, reg, lnd = self.raw_detector(inputs, training=False)
-        boxes, landmarks = self.nms([cls, reg, lnd])
-        return boxes, landmarks
+        boxes, landmarks, scores = self.nms([cls, reg, lnd])
+        return boxes, landmarks, scores
 
     def get_config(self):
         base = super(FaceDetector, self).get_config()
