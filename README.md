@@ -21,3 +21,9 @@ Both the detection and recognition models are meant to be as light as possible w
 
 ## Demo 
 ![Alt text](images/example_photo.jpg)
+
+## Citation 
+These are the links to the papers I implemented
+[Link Text](https://arxiv.org/pdf/1905.00641v2)
+[Link Text](https://arxiv.org/pdf/1804.07573)
+[Link Text](https://openaccess.thecvf.com/content_CVPR_2019/papers/Deng_ArcFace_Additive_Angular_Margin_Loss_for_Deep_Face_Recognition_CVPR_2019_paper.pdf)
