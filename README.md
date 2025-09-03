@@ -24,6 +24,7 @@ Both the detection and recognition models are meant to be as light as possible w
 
 ## Citation 
 These are the links to the papers I implemented
+
 [RetinaFace: Single-stage Dense Face Localisation in the Wild](https://arxiv.org/pdf/1905.00641v2)
 
 [MobileFaceNets: Efficient CNNs for Accurate RealTime Face Verification on Mobile Devices](https://arxiv.org/pdf/1804.07573)
